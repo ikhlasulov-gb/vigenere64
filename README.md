@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/favicon.svg" alt="Favicon" width="64"/>
+  <img src="img/favicon.svg" alt="Favicon" width="128"/>
 </p>
 
 # Vigenère64
