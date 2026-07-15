@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Шифр Виженера (ROT1, ключ islam) с правилами предобработки и кодирование текста в Base64.">
+<title>Виженер64</title>
+<link rel="icon" type="image/png" sizes="16x16" href="img/favicons/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicons/favicon-32.png">
+<link rel="stylesheet" href="css/aero.css">
+</head>
+<body>
+<noscript>
+  <p style="text-align:center;padding:12px;color:#cc0000;">Для работы приложения включите JavaScript в браузере.</p>
+</noscript>
+<div class="pagewrap">
+  <header class="header">
+    <h1>Виженер64</h1>
+    <p class="subtitle">Шифр Виженера (ROT1, ключ &laquo;islam&raquo;) с правилами предобработки и кодирование текста в Base64</p>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="Разделы приложения">
+    <a id="btn-vigenere" class="tabbtn tabbtn-active" href="#vigenere" data-tab="vigenere" role="tab" aria-selected="true" aria-controls="tab-vigenere" tabindex="0">Шифр Виженера</a>
+    <a id="btn-base64" class="tabbtn" href="#base64" data-tab="base64" role="tab" aria-selected="false" aria-controls="tab-base64" tabindex="-1">Base64</a>
+  </nav>
+  <main class="content">
+    <section id="tab-vigenere" class="tabpanel tabpanel-active" role="tabpanel" aria-labelledby="btn-vigenere">
+      <h2 class="pagetitle">Шифр Виженера</h2>
+      <p class="pagedesc">Введите фразу без пробелов. К ней применятся правила предобработки, затем шифр Виженера с ключом &laquo;islam&raquo; и сдвигом ROT1.</p>
+      <div class="fieldrow">
+        <label for="input-vig">Фраза (строчные a&ndash;z, цифры и спецзнаки, без пробелов):</label>
+        <div class="inputrow">
+          <input id="input-vig" class="inputbox" type="text" maxlength="40" placeholder="Например: forest" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn" data-clear="input-vig" disabled>Очистить</button>
+        </div>
+        <div class="hint">Длина больше 10 &mdash; сдвигается; меньше 10 &mdash; дополняется. Заглавные буквы и кириллица не допускаются.</div>
+        <div id="err-vig" class="errmsg" role="alert" aria-hidden="true"></div>
+      </div>
+      <div class="resultblock">
+        <div class="resultlabel">Предобработка <span class="pipe">(после правил)</span></div>
+        <div class="resultrow">
+          <output id="pre-vig" class="resultbox resultbox-empty" aria-live="polite">&mdash;</output>
+          <button type="button" class="btn" data-copy="pre-vig" disabled>Копировать</button>
+        </div>
+      </div>
+      <div class="resultblock">
+        <div class="resultlabel">Шифр Виженера</div>
+        <div class="resultrow">
+          <output id="cipher-vig" class="resultbox resultbox-empty" aria-live="polite">&mdash;</output>
+          <button type="button" class="btn" data-copy="cipher-vig" disabled>Копировать</button>
+        </div>
+      </div>
+      <div class="resultblock">
+        <div class="resultlabel">Ход предобработки</div>
+        <div id="steps-vig" class="steps" aria-live="polite"><span class="stepline muted">Введите фразу, чтобы увидеть шаги</span></div>
+      </div>
+      <div class="rules-divider"></div>
+      <div class="rules-section">
+        <h3><span class="tag">A</span>Сдвиг, если длина больше 10</h3>
+        <p>Лишние символы удаляются по одному, пока длина не станет равна 10. Правило зависит от положения спецзнака (любой символ вне a&ndash;z):</p>
+        <p>&mdash; <b>Спецзнак не в начале</b>: удаляется символ перед ним.</p>
+        <p>&mdash; <b>Спецзнак в самом начале</b>: удаляется символ с конца.</p>
+        <p>&mdash; <b>Спецзнаков нет</b>: удаляется символ с начала.</p>
+        <div class="example">
+          forest (6 букв) &mdash; короче 10, сдвига нет.<br>
+          abcdefghijk (11, без спецзнаков) &gt; bcdefghijk.<br>
+          -abcdefghijk (12, спецзнак в начале) &gt; -abcdefghi.
+        </div>
+      </div>
+      <div class="rules-section">
+        <h3><span class="tag">B</span>Замена спецзнаков буквами</h3>
+        <p>После сдвига каждый спецзнак заменяется буквой по своей позиции в слове (нумерация с 1): позиция 1 &gt; &laquo;a&raquo;, позиция 2 &gt; &laquo;b&raquo;, &hellip; Это сохраняет положение спецзнака внутри слова в алфавитном формате, который требует шифр Виженера.</p>
+        <div class="example">
+          tree-bee &gt; &laquo;-&raquo; на позиции 5 &gt; tree<i>e</i>bee<br>
+          ab#cd &gt; &laquo;#&raquo; на позиции 3 &gt; ab<i>c</i>cd<br>
+          ikhlasu-pr &gt; &laquo;-&raquo; на позиции 8 &gt; ikhlasu<i>h</i>pr
+        </div>
+      </div>
+      <div class="rules-section">
+        <h3><span class="tag">C</span>Дополнение, если короче 10</h3>
+        <p>Если после применения правил [A] и [B] слово короче 10 символов, оно дополняется буквами начиная с позиции (длина+1). Правило применяется всегда, когда длина меньше 10, в том числе после замены спецзнаков.</p>
+        <div class="example">
+          forest (6) &gt; +g h i j &gt; forestghij<br>
+          tree (4) &gt; +e f g h i j &gt; treeefghij<br>
+          tree-bee (8, со спецзнаком) &gt; [B] tree<i>e</i>bee &gt; [C] +i j &gt; treeebeeij
+        </div>
+      </div>
+      <div class="rules-section">
+        <h3>Шаг Виженера (ROT1)</h3>
+        <p>К 10-символьному слову применяется шифр Виженера с ключом <b>islam</b> и сдвигом ROT1: <b>C[i] = (P[i] + K[i] + 1) mod 26</b>, где P[i] и K[i] &mdash; номера букв текста и ключа (a=0&hellip;z=25), ключ повторяется циклически.</p>
+        <div class="example">
+          открытый текст: forestghij<br>
+          ключ (циклически): islamislam<br>
+          C[0] = (f=5 + i=8 + 1) mod 26 = 14 &gt; &laquo;o&raquo;<br>
+          &hellip; итог: ohdffcztjw
+        </div>
+      </div>
+    </section>
+    <section id="tab-base64" class="tabpanel" role="tabpanel" aria-labelledby="btn-base64">
+      <h2 class="pagetitle">Кодирование Base64</h2>
+      <p class="pagedesc">Base64 кодирует введённый текст напрямую. Текст проходит только UTF-8 преобразование, без правил предобработки.</p>
+      <div class="fieldrow">
+        <label for="input-b64">Произвольный текст (любые символы, включая пробелы и кириллицу):</label>
+        <div class="inputrow">
+          <input id="input-b64" class="inputbox" type="text" maxlength="100" placeholder="Например: Hello, World!" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn" data-clear="input-b64" disabled>Очистить</button>
+        </div>
+        <div class="hint">Можно ввести любой текст — результат пересчитывается при вводе.</div>
+        <div id="err-b64" class="errmsg" role="alert" aria-hidden="true"></div>
+      </div>
+      <div class="resultblock">
+        <div class="resultlabel">Base64</div>
+        <div class="resultrow">
+          <output id="b64-out" class="resultbox resultbox-empty" aria-live="polite">&mdash;</output>
+          <button type="button" class="btn" data-copy="b64-out" disabled>Копировать</button>
+        </div>
+      </div>
+      <div class="rules-divider"></div>
+      <div class="rules-section">
+        <h3>Кодирование Base64</h3>
+        <p>Base64 &mdash; стандарт обратимого кодирования, переводящее произвольную последовательность байт в строку из латинских букв, цифр и символов <code>+</code>, <code>/</code>, <code>=</code>. Любой вход преобразуется в группу по 4 печатных символа на каждые 3 байта исходных данных, поэтому длина результата всегда кратна четырём. Алфавит Base64 состоит из 64 знаков: 26 заглавных букв A&ndash;Z, 26 строчных a&ndash;z, 10 цифр 0&ndash;9 и два дополнительных символа <code>+</code> и <code>/</code>. В браузере кодирование выполняется встроенной функцией <code>btoa()</code>, которая доступна во всех современных браузерах, включая IE11.</p>
+        <div class="example">
+          apple &gt; YXBwbGU=<br>
+          Hello &gt; SGVsbG8=<br>
+          abc &gt; YWJj
+        </div>
+      </div>
+      <div class="rules-section">
+        <h3>Поддержка кириллицы и эмодзи</h3>
+        <p>Функция <code>btoa()</code> принимает только латинские символы (ASCII). Для кодирования произвольного текста &mdash; включая кириллицу, пробелы и эмодзи &mdash; строка сначала преобразуется в UTF-8 через связку <code>unescape(encodeURIComponent(...))</code>, а затем передаётся в <code>btoa()</code>. Это классический приём, работающий во всех браузерах, включая IE11. Обратное преобразование выполняется функцией <code>atob(decodeURIComponent(escape(...)))</code>: она сначала декодирует Base64 в «сырые» байты, а затем восстанавливает из них оригинальную строку.</p>
+        <div class="example">
+          Ассаляму алейкум &gt; 0JDRgdGB0LDQu9GP0LzRgyDQsNC70LXQudC60YPQvA==<br>
+          Привет, мир! &gt; 0J/RgNC40LLQtdGCLCBt0LjRgCE=<br>
+          Hello, World! &gt; SGVsbG8sIFdvcmxkIQ==
+        </div>
+      </div>
+      <div class="rules-section">
+        <h3>Свойства кодирования</h3>
+        <p>Base64 не является шифрованием &mdash; его можно обратить, зная правило перевода. Кодирование используется для передачи бинарных данных в текстовых каналах (email, URL, JSON), где символы вне ASCII запрещены или искажаются. Длина результата всегда больше исходной примерно на треть, а символ <code>=</code> в конце служит выравниванием и может встречаться только в конце строки. Вариант Base64URL заменяет <code>+</code> и <code>/</code> на <code>-</code> и <code>_</code>, чтобы результат можно было безопасно использовать в адресах.</p>
+        <div class="example">
+          a (1 байт) &gt; YQ== (4 символа)<br>
+          ab (2 байта) &gt; YWI= (4 символа)<br>
+          abc (3 байта) &gt; YWJj (4 символа, без <code>=</code>)
+        </div>
+      </div>
+      <div class="rules-section">
+        <h3>Применение на практике</h3>
+        <p>Base64 используется повсеместно: вложения в электронной почте (MIME), data: URL в HTML и CSS (встраивание картинок прямо в разметку), JSON-представление бинарных данных, токены аутентификации (например, JWT), а также передача файлов через API. Кодирование не сжимает данные &mdash; оно лишь представляет байты в текстовом виде. Для защиты конфиденциальности Base64 не подходит: его декодирование тривиально и не требует ключа.</p>
+        <div class="example">
+          data:image/png;base64,iVBORw0KGgo...<br>
+          JWT: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.4Adcj3UFYzPUVaVF43FmMze0kXg<br>
+          MIME: Content-Transfer-Encoding: base64
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer">
+    <div class="copyright">Copyright &copy; 2026 Ikhlasulov</div>
+    <div class="license">
+      Распространяется на условиях <a href="LICENSE">GNU GPL версии 3</a> или любой более поздней версии.
+    </div>
+  </footer>
+</div>
+<script src="js/app.js" defer></script>
+</body>
+</html>
